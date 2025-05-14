@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APK上传与下载系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    
+    <!-- Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .shadow-soft {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-inter text-gray-800 min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-cloud-upload text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark">APK<span class="text-primary">上传</span></h1>
+            </div>
+            <nav>
+                <ul class="hidden md:flex space-x-6">
+                    <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">首页</a></li>
+                    <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">文档</a></li>
+                    <li><a href="#" class="text-gray-600 hover:text-primary transition-colors">关于</a></li>
+                </ul>
+                <button class="md:hidden text-gray-600 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <section class="max-w-3xl mx-auto">
+            <!-- 标题区域 -->
+            <div class="text-center mb-10">
+                <h2 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-dark mb-4">上传你的APK文件</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    上传Android应用程序包(APK)，系统将自动为你生成一个唯一的下载链接，方便用户获取你的应用。
+                </p>
+            </div>
+
+            <!-- 上传区域 -->
+            <div class="bg-white rounded-xl shadow-soft p-8 mb-8 transition-all duration-300 hover:shadow-lg">
+                <div id="upload-container" class="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center cursor-pointer hover:border-primary transition-all duration-300">
+                    <div id="upload-icon" class="text-primary text-5xl mb-4">
+                        <i class="fa-solid fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">拖放APK文件到这里</h3>
+                    <p class="text-gray-500 mb-6">或者点击选择文件</p>
+                    <button id="browse-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        选择APK文件
+                    </button>
+                    <input type="file" id="file-input" accept=".apk" class="hidden">
+                </div>
+
+                <!-- 上传进度条 (默认隐藏) -->
+                <div id="upload-progress" class="hidden mt-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">上传进度</span>
+                        <span id="progress-percentage">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="progress-bar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上传结果区域 (默认隐藏) -->
+            <div id="upload-result" class="hidden bg-white rounded-xl shadow-soft p-8 mb-8 transform transition-all duration-500 scale-95 opacity-0">
+                <div class="flex items-start space-x-4">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fa-solid fa-check text-green-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">上传成功！</h3>
+                        <p class="text-gray-600 mb-4">你的APK已成功上传并准备好下载。</p>
+                        
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <input type="text" id="download-url" readonly 
+                                    class="flex-grow bg-transparent border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    value="">
+                                <button id="copy-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 whitespace-nowrap">
+                                    <i class="fa-solid fa-copy mr-1"></i> 复制链接
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-3">
+                            <a id="download-link" href="#" target="_blank" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 flex items-center">
+                                <i class="fa-solid fa-download mr-2"></i> 下载页面
+                            </a>
+                            <button id="new-upload-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-all duration-300 flex items-center">
+                                <i class="fa-solid fa-plus mr-2"></i> 新上传
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能介绍 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                <div class="bg-white rounded-xl shadow-soft p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-file-archive text-primary text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">自动重命名</h3>
+                    <p class="text-gray-600">上传的APK文件会自动被赋予唯一名称，避免命名冲突和安全问题。</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-soft p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-mobile-screen-button text-green-500 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">多设备兼容</h3>
+                    <p class="text-gray-600">生成的下载页面会自动检测用户设备和浏览器类型，提供最佳的下载体验。</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-soft p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-link text-purple-500 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">永久链接</h3>
+                    <p class="text-gray-600">每个上传的APK都有一个固定的下载链接，可以随时分享给你的用户。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-cloud-upload text-primary text-xl"></i>
+                        <span class="font-bold text-lg">APK上传系统</span>
+                    </div>
+                    <p class="text-gray-400 mt-2">简单、高效的APK分发解决方案</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fa-brands fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fa-brands fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fa-brands fa-linkedin text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400">
+                <p>&copy; 2025 APK上传系统 - 保留所有权利</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 通知组件 -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 transform translate-y-16 opacity-0 transition-all duration-300 z-50 max-w-sm">
+        <div class="flex items-start space-x-3">
+            <div id="notification-icon" class="bg-blue-100 p-2 rounded-full">
+                <i class="fa-solid fa-info-circle text-primary"></i>
+            </div>
+            <div>
+                <h4 id="notification-title" class="font-medium text-gray-800">通知标题</h4>
+                <p id="notification-message" class="text-sm text-gray-600 mt-1">通知内容将显示在这里...</p>
+            </div>
+            <button id="close-notification" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('file-input');
+            const browseBtn = document.getElementById('browse-btn');
+            const uploadContainer = document.getElementById('upload-container');
+            const uploadProgress = document.getElementById('upload-progress');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = document.getElementById('progress-percentage');
+            const uploadResult = document.getElementById('upload-result');
+            const downloadUrl = document.getElementById('download-url');
+            const downloadLink = document.getElementById('download-link');
+            const copyBtn = document.getElementById('copy-btn');
+            const newUploadBtn = document.getElementById('new-upload-btn');
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notification-title');
+            const notificationMessage = document.getElementById('notification-message');
+            const notificationIcon = document.getElementById('notification-icon');
+            const closeNotification = document.getElementById('close-notification');
+            
+            // 浏览文件按钮点击事件
+            browseBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // 文件选择事件
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (file.type === 'application/vnd.android.package-archive' || 
+                        file.name.toLowerCase().endsWith('.apk')) {
+                        uploadFile(file);
+                    } else {
+                        showNotification('错误', '请选择APK格式的文件', 'error');
+                    }
+                }
+            });
+            
+            // 拖放功能
+            uploadContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadContainer.classList.add('border-primary');
+                uploadContainer.classList.add('bg-blue-50');
+            });
+            
+            uploadContainer.addEventListener('dragleave', () => {
+                uploadContainer.classList.remove('border-primary');
+                uploadContainer.classList.remove('bg-blue-50');
+            });
+            
+            uploadContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadContainer.classList.remove('border-primary');
+                uploadContainer.classList.remove('bg-blue-50');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type === 'application/vnd.android.package-archive' || 
+                        file.name.toLowerCase().endsWith('.apk')) {
+                        uploadFile(file);
+                    } else {
+                        showNotification('错误', '请选择APK格式的文件', 'error');
+                    }
+                }
+            });
+            
+            // 上传文件函数
+            function uploadFile(file) {
+                // 显示进度条
+                uploadProgress.classList.remove('hidden');
+                uploadContainer.classList.add('hidden');
+                
+                const formData = new FormData();
+                formData.append('apkFile', file);
+                
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'upload.php', true);
+                
+                // 监听上传进度
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                        progressPercentage.textContent = Math.round(percentComplete) + '%';
+                    }
+                });
+                
+                // 上传完成
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                // 显示上传结果
+                                downloadUrl.value = window.location.origin + '/' + response.downloadUrl;
+                                downloadLink.href = response.downloadUrl;
+                                
+                                // 显示结果区域并添加动画
+                                uploadResult.classList.remove('hidden');
+                                // 使用setTimeout触发重排，使动画生效
+                                setTimeout(() => {
+                                    uploadResult.classList.remove('scale-95', 'opacity-0');
+                                    uploadResult.classList.add('scale-100', 'opacity-100');
+                                }, 10);
+                                
+                                showNotification('成功', 'APK上传成功！', 'success');
+                            } else {
+                                showNotification('上传失败', response.message, 'error');
+                                resetUpload();
+                            }
+                        } catch (error) {
+                            showNotification('错误', '解析服务器响应失败', 'error');
+                            resetUpload();
+                        }
+                    } else {
+                        showNotification('错误', '服务器响应错误: ' + xhr.status, 'error');
+                        resetUpload();
+                    }
+                };
+                
+                // 上传错误
+                xhr.onerror = () => {
+                    showNotification('网络错误', '上传过程中发生网络错误', 'error');
+                    resetUpload();
+                };
+                
+                // 发送请求
+                xhr.send(formData);
+            }
+            
+            // 复制链接按钮
+            copyBtn.addEventListener('click', () => {
+                downloadUrl.select();
+                document.execCommand('copy');
+                
+                // 更改按钮文本
+                copyBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> 已复制';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fa-solid fa-copy mr-1"></i> 复制链接';
+                }, 2000);
+                
+                showNotification('成功', '下载链接已复制到剪贴板', 'success');
+            });
+            
+            // 新上传按钮
+            newUploadBtn.addEventListener('click', () => {
+                resetUpload();
+            });
+            
+            // 重置上传区域
+            function resetUpload() {
+                uploadProgress.classList.add('hidden');
+                uploadContainer.classList.remove('hidden');
+                uploadResult.classList.add('scale-95', 'opacity-0');
+                
+                setTimeout(() => {
+                    uploadResult.classList.add('hidden');
+                }, 300);
+                
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+                fileInput.value = '';
+            }
+            
+            // 显示通知
+            function showNotification(title, message, type = 'info') {
+                notificationTitle.textContent = title;
+                notificationMessage.textContent = message;
+                
+                // 设置图标和颜色
+                notificationIcon.innerHTML = '';
+                notificationIcon.className = '';
+                
+                if (type === 'success') {
+                    notificationIcon.innerHTML = '<i class="fa-solid fa-check text-green-500"></i>';
+                    notificationIcon.className = 'bg-green-100 p-2 rounded-full';
+                } else if (type === 'error') {
+                    notificationIcon.innerHTML = '<i class="fa-solid fa-exclamation-circle text-red-500"></i>';
+                    notificationIcon.className = 'bg-red-100 p-2 rounded-full';
+                } else {
+                    notificationIcon.innerHTML = '<i class="fa-solid fa-info-circle text-primary"></i>';
+                    notificationIcon.className = 'bg-blue-100 p-2 rounded-full';
+                }
+                
+                // 显示通知
+                notification.classList.remove('translate-y-16', 'opacity-0');
+                notification.classList.add('translate-y-0', 'opacity-100');
+                
+                // 自动关闭
+                let timeout = setTimeout(() => {
+                    hideNotification();
+                }, 5000);
+                
+                // 点击关闭
+                closeNotification.addEventListener('click', () => {
+                    clearTimeout(timeout);
+                    hideNotification();
+                });
+            }
+            
+            // 隐藏通知
+            function hideNotification() {
+                notification.classList.add('translate-y-16', 'opacity-0');
+                notification.classList.remove('translate-y-0', 'opacity-100');
+            }
+            
+            // 滚动时导航栏样式变化
+            window.addEventListener('scroll', () => {
+                const header = document.querySelector('header');
+                if (window.scrollY > 10) {
+                    header.classList.add('py-2');
+                    header.classList.remove('py-3');
+                } else {
+                    header.classList.add('py-3');
+                    header.classList.remove('py-2');
+                }
+            });
+        });
+    </script>
+</body>
+</html>    
